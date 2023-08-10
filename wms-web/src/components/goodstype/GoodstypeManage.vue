@@ -1,0 +1,213 @@
+<template>
+  <div>
+    <div style="margin-bottom: 5px;">
+      <el-input v-model="name" placeholder="请输入货物类型" style="width: 200px;"
+                suffix-icon="el-icon-search" size="small" @keyup.enter.native="loadPost"></el-input>
+      <el-button type="primary" style="margin-left: 5px;" size="small" @click="loadPost">查询</el-button>
+      <el-button type="success" style="margin-left: 5px;" size="small" @click="resetParam">重置</el-button>
+      <el-button type="primary" style="margin-left: 5px;" size="small" @click="add">新增</el-button>
+    </div>
+    <el-table :data="tableData" :header-cell-style="{background:'#f3f6fd',color:'#555'}" border>
+      <el-table-column prop="id" label="ID" width="60">
+      </el-table-column>
+      <el-table-column prop="name" label="货物类型" width="180">
+      </el-table-column>
+      <el-table-column prop="remark" label="备注" width="180">
+      </el-table-column>
+      <el-table-column prop="operate" label="操作">
+        <template slot-scope="scope">
+          <el-button size="small" type="success" @click="edit(scope.row)">编辑</el-button>
+          <el-popconfirm
+              title="确定删除吗？"
+              style="margin-left: 5px;"
+              @confirm="del(scope.row.id)"
+          >
+            <el-button slot="reference" size="small" type="danger">删除</el-button>
+          </el-popconfirm>
+        </template>
+      </el-table-column>
+    </el-table>
+    <!--    分页-->
+    <el-pagination
+        style="text-align: center"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="pageNum"
+        :page-sizes="[2, 5, 10, 20, 30, 40]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total">
+    </el-pagination>
+
+    <el-dialog
+        title="提示"
+        :visible.sync="centerDialogVisible"
+        width="30%"
+        center>
+
+      <el-form ref="form" :rules="rules" :model="form" label-width="80px">
+        <el-form-item label="货物类型" prop="name">
+          <!--    调整文本框大小 例如  :span="11" 根据数字来-->
+          <el-col :span="20">
+            <el-input v-model="form.name"></el-input>
+          </el-col>
+        </el-form-item>
+
+        <el-form-item label="备注" prop="remark">
+          <el-col :span="20">
+            <el-input type="textarea" v-model="form.remark"></el-input>
+          </el-col>
+        </el-form-item>
+      </el-form>
+
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="save">确 定</el-button>
+        <el-button @click="centerDialogVisible = false">取 消</el-button>
+      </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "GoodstypeManage",
+  data(){
+    let checkDuplicate = (rule,value,callback)=>{
+      if(this.form.id){
+        return callback()
+      }
+      this.$axios.get(this.$httpsUrl+"/goodstype/findByName?name="+this.form.name).then(res=>res.data).then(res=>{
+        if(res.code!=200){
+          callback()
+        }else {
+          callback(new Error('货物类型已经存在'))
+        }
+      })
+    };
+    return {
+      tableData: [],
+      pageSize:10,
+      pageNum:1,
+      total:0,
+      name:'',
+      remark:'',
+      centerDialogVisible:false,
+      rules: {
+        name: [
+          {required: true, message: '请输入货物类型', trigger: 'blur'},
+          {min: 1, max: 5, message: '长度在 1 到 5 个字符', trigger: 'blur'}
+        ]
+      },
+      form:{
+        id:'',
+        name:'',
+        remark:''
+      }
+    }
+  },
+  methods:{
+    edit(row){
+      //展示表单  false为隐藏
+      this.centerDialogVisible=true
+      this.$nextTick(()=>{
+        //赋值到表单
+        this.form.id=row.id
+        this.form.name=row.name
+        this.form.remark=row.remark
+      })
+    },
+    del(id){
+      this.$axios.get(this.$httpsUrl+'/goodstype/del?id='+id).then(res=>res.data).then(res=>{
+        if(res.code==200){
+          this.$message({
+            message: '操作成功',
+            type: 'success'
+          });
+          this.loadPost()
+        }else{
+          this.$message({
+            message: '操作失败',
+            type: 'error'
+          });
+        }
+      })
+    },
+    //新增按钮中 清除表单未提交的数据
+    resetForm() {
+      this.$refs.form.resetFields();
+    },
+    save(){
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          this.$axios.post(this.$httpsUrl+'/goodstype/saveOrMod',this.form).then(res=>res.data).then(res=>{
+            if(res.code==200){
+              this.$message({
+                message: '操作成功',
+                type: 'success'
+              });
+              this.centerDialogVisible=false
+              this.loadPost()
+            }else{
+              this.$message({
+                message: '操作失败',
+                type: 'error'
+              });
+            }
+          })
+
+        } else {
+          console.log('error submit!!');
+          return false;
+        }
+      });
+
+    },
+    add(){
+      this.centerDialogVisible=true
+      this.$nextTick(()=>{
+        this.resetForm()
+      })
+    },
+    //重置按钮功能
+    resetParam(){
+      this.name=''
+      this.loadPost()
+    },
+    loadPost(){
+      this.$axios.post(this.$httpsUrl+'/goodstype/listPageP',{
+        "pageSize":this.pageSize,
+        "pageNum":this.pageNum,
+        "param":{
+          name: this.name,
+          remark: this.remark,
+        }
+      }).then(res=>res.data).then(res=>{
+        if(res.code==200){
+          this.tableData=res.data
+          this.total=res.total
+        }else{
+          alert('获取数据失败')
+        }
+      })
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`);
+      this.pageNum=1 //保险 避免回不到第一页 偶尔可能出现这种问题
+      this.pageSize=val
+      this.loadPost()
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`);
+      this.pageNum=val
+      this.loadPost()
+    }
+  },
+  beforeMount() {
+    this.loadPost()
+  }
+}
+</script>
+
+<style scoped>
+
+</style>
