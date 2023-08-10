@@ -3,7 +3,7 @@
 
 适合初学者，可当课程设计、毕业设计
 
-wms-web是前端，技术涉及vue、vuex、element
+wms-web是前端，技术涉及vue、vuex、element <br/>
 wms是后端，技术涉及springboot、mybatis-plus
 
 #注意事项
