@@ -6,7 +6,7 @@
 wms-web是前端，技术涉及vue、vuex、element <br/>
 wms是后端，技术涉及springboot、mybatis-plus
 
-#注意事项
+#注意事项 <br/>
 mysql5.7
 maven3.3.0+
 jdk1.8+
